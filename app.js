@@ -299,7 +299,7 @@ function validate() {
   return null;
 }
 
-async function onSave(e) {
+function onSave(e) {
   e.preventDefault();
   const err = validate();
   if (err) { toast(err, "error"); return; }
@@ -324,22 +324,19 @@ async function onSave(e) {
     fotos:       state.photos.map((p) => p.dataUrl), // base64 JPEG
   };
 
-  showOverlay("Guardando…");
-  const ok = await sendPayload(payload);
-  hideOverlay();
-
-  // Guardamos en el recorrido del día (para resumen y reporte offline)
+  // Guardado INSTANTÁNEO: se persiste en cola (no se pierde) y la app avanza
+  // de inmediato. La foto sube en segundo plano; el supervisor no espera.
+  enqueue(payload);
   saveToToday({
     fecha: payload.fecha, hora: payload.hora, nivel: payload.nivel,
     area: payload.area, subarea: payload.subarea, supervisor: payload.supervisor,
     calificacion: cal, estado, observacion: payload.observacion,
   });
 
-  if (ok) toast("Área guardada ✓", "ok");
-  else    toast("Sin conexión: guardado en cola, se enviará solo.", "ok");
-
+  toast("Área guardada ✓", "ok");
   resetAreaForm();
   renderSummary();
+  flushQueue(); // envía en segundo plano, sin bloquear la pantalla
 }
 
 async function onFinish() {
@@ -348,8 +345,6 @@ async function onFinish() {
     toast("Aún no has guardado ninguna área hoy.", "error");
     return;
   }
-  await flushQueue(); // asegura que todo esté enviado antes del reporte
-
   const payload = {
     action:     "reporte",
     token:      CONFIG.APP_TOKEN || "",
@@ -358,7 +353,12 @@ async function onFinish() {
     supervisor: $("supervisor").value.trim() || (dia[0] && dia[0].supervisor) || "",
   };
 
-  showOverlay("Generando reporte…");
+  // Primero asegura que TODAS las áreas pendientes ya llegaron al servidor
+  showOverlay("Enviando inspecciones…");
+  await flushQueue();
+  if (loadJSON(QUEUE_KEY, []).length > 0) await flushQueue();
+
+  showOverlay("Generando reporte… puede tardar unos segundos");
   const ok = await sendPayload(payload, /*forceOnline=*/true);
   hideOverlay();
 
@@ -423,20 +423,27 @@ function enqueue(payload) {
   localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
 }
 
-async function flushQueue() {
+// Serializa el vaciado de la cola: si ya hay uno en curso, devuelve el mismo.
+let _flushing = null;
+function flushQueue() {
+  if (_flushing) return _flushing;
+  _flushing = _doFlush().finally(() => { _flushing = null; });
+  return _flushing;
+}
+
+async function _doFlush() {
   const url = CONFIG.ENDPOINT_URL;
   if (!url || url.startsWith("PEGAR_AQUI")) return;
-  let q = loadJSON(QUEUE_KEY, []);
-  if (q.length === 0) return;
-
-  const restantes = [];
-  for (const item of q) {
-    const ok = await sendPayload(item, /*forceOnline=*/true);
-    if (!ok) restantes.push(item);
-  }
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(restantes));
-  if (q.length > 0 && restantes.length === 0) {
-    toast("Pendientes enviados ✓", "ok");
+  // Envía de uno en uno (FIFO). Quita cada elemento al confirmarse, re-leyendo
+  // la cola por si se agregó algo mientras tanto. Para al primer fallo (sin red).
+  for (let guard = 0; guard < 100; guard++) {
+    const q = loadJSON(QUEUE_KEY, []);
+    if (q.length === 0) return;
+    const ok = await sendPayload(q[0], /*forceOnline=*/true);
+    if (!ok) return; // sin red: se queda en cola y se reintenta después
+    const q2 = loadJSON(QUEUE_KEY, []);
+    q2.shift();
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q2));
   }
 }
 

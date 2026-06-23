@@ -25,9 +25,10 @@ const CONFIG = {
         el reporte los convierte a números 4..1). */
   CALIFICACIONES: ["Excelente", "Buena", "Regular", "Mala"],
 
-  /* 5) Compresión de fotos antes de enviar (0.3 ligera … 0.9 buena). */
-  FOTO_CALIDAD: 0.7,
-  FOTO_ANCHO_MAX: 1280,
+  /* 5) Compresión de fotos antes de enviar (0.3 ligera … 0.9 buena).
+        Más ligero = sube más rápido. 0.6 / 1024 px se ve bien y pesa poco. */
+  FOTO_CALIDAD: 0.6,
+  FOTO_ANCHO_MAX: 1024,
 
   /* 6) Fotos por área (mínimo y máximo). */
   FOTOS_MIN: 1,

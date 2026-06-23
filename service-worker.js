@@ -4,7 +4,7 @@
    Sube la versión (CACHE) cada vez que cambies archivos para forzar
    actualización en los iPhone ya instalados.
    ===================================================================== */
-const CACHE = "kln-liverpool-v13";
+const CACHE = "kln-liverpool-v15";
 
 const ASSETS = [
   "./",

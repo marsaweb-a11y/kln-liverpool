@@ -398,16 +398,19 @@ async function sendPayload(payload, forceOnline = false) {
     return false;
   }
   try {
-    // text/plain evita el preflight CORS contra Apps Script
-    const res = await fetch(url, {
+    // mode:"no-cors" + text/plain: el navegador NO puede leer la respuesta de
+    // Apps Script (CORS), pero el envío SÍ llega al servidor. Si fetch no lanza
+    // (hay red), lo damos por enviado. Esto evita el falso "sin conexión" y los
+    // duplicados por reintentos.
+    await fetch(url, {
       method: "POST",
+      mode: "no-cors",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error("HTTP " + res.status);
     return true;
   } catch (err) {
-    console.warn("Envío falló:", err);
+    console.warn("Envío falló (sin red):", err);
     if (forceOnline) return false;
     enqueue(payload);
     return false;

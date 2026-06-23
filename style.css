@@ -4,13 +4,14 @@
    ===================================================================== */
 
 :root {
-  /* Paleta teal KLN (profesional). El naranja del logo (#FE7C4B) se usa
-     como acento de marca. */
-  --teal-900: #134e4a;
-  --teal-700: #0f766e;
-  --teal-600: #0d9488;
-  --teal-500: #14b8a6;
-  --teal-50:  #f0fdfa;
+  /* Colores oficiales KLN: AZUL MARINO (principal) + NARANJA (acento del logo).
+     Los nombres "teal-*" se conservan para no tocar el resto del CSS;
+     los valores ya son azul marino. */
+  --teal-900: #122339;  /* azul marino profundo */
+  --teal-700: #1e3a5f;  /* azul marino principal */
+  --teal-600: #294d7a;  /* azul marino claro */
+  --teal-500: #3a6296;
+  --teal-50:  #eef2f8;  /* tinte azul muy claro */
 
   /* Acento de marca (naranja del logo) */
   --brand:    #fe7c4b;
@@ -330,10 +331,14 @@ html, body {
   font-size: 15px;
   border-radius: 999px;
   box-shadow: 0 10px 30px rgba(0,0,0,.3);
-  transition: transform .3s cubic-bezier(.2,.9,.3,1);
+  transition: transform .3s cubic-bezier(.2,.9,.3,1), opacity .3s, visibility .3s;
   text-align: center;
+  /* Totalmente oculto cuando no hay mensaje (evita la barra negra asomándose) */
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
-.toast.show { transform: translate(-50%, 0); }
+.toast.show { transform: translate(-50%, 0); opacity: 1; visibility: visible; }
 .toast.ok    { background: var(--green); }
 .toast.error { background: var(--red); }
 

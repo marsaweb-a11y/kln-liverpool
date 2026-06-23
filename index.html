@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0f766e" />
+  <meta name="theme-color" content="#1e3a5f" />
 
   <!-- iOS / PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -35,6 +35,20 @@
 
     <!-- ============ FORMULARIO ============ -->
     <form id="form" autocomplete="off" novalidate>
+
+      <!-- Supervisor (cada quien escribe su nombre) — va primero -->
+      <section class="field">
+        <label class="label" for="supervisor">Supervisor</label>
+        <input
+          type="text"
+          id="supervisor"
+          class="input"
+          placeholder="Escribe tu nombre…"
+          autocapitalize="words"
+          autocomplete="name"
+          required />
+        <p class="hint">Se recuerda en este dispositivo para el resto del recorrido.</p>
+      </section>
 
       <!-- Nivel -->
       <section class="field">
@@ -68,20 +82,6 @@
           <ul class="combo-list" id="subareaList" hidden></ul>
         </div>
         <p class="hint" id="subareaHint">Primero elige el área.</p>
-      </section>
-
-      <!-- Supervisor (cada quien escribe su nombre) -->
-      <section class="field">
-        <label class="label" for="supervisor">Supervisor</label>
-        <input
-          type="text"
-          id="supervisor"
-          class="input"
-          placeholder="Escribe tu nombre…"
-          autocapitalize="words"
-          autocomplete="name"
-          required />
-        <p class="hint">Se recuerda en este dispositivo para el resto del recorrido.</p>
       </section>
 
       <!-- Calificación -->

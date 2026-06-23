@@ -26,6 +26,7 @@ const $ = (id) => document.getElementById(id);
    INICIALIZACIÓN
    ===================================================================== */
 document.addEventListener("DOMContentLoaded", () => {
+  hideOverlay();         // asegura que la capa de carga NO quede pegada al abrir
   $("contractPill").textContent = CONFIG.CONTRATO;
   initNivel();
   initArea();
@@ -512,8 +513,17 @@ function toast(msg, type = "") {
 }
 
 /* ---------- Overlay ---------- */
-function showOverlay(text) { $("overlayText").textContent = text; $("overlay").hidden = false; }
-function hideOverlay() { $("overlay").hidden = true; }
+function showOverlay(text) {
+  const o = $("overlay");
+  $("overlayText").textContent = text;
+  o.hidden = false;
+  o.style.display = "flex"; // inline gana por encima del CSS (a prueba de caché)
+}
+function hideOverlay() {
+  const o = $("overlay");
+  o.hidden = true;
+  o.style.display = "none";
+}
 
 /* ---------- Service Worker ---------- */
 function registerServiceWorker() {

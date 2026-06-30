@@ -7,6 +7,7 @@
 const state = {
   photos: [],          // { id, dataUrl } comprimidas
   rating: "",          // calificación elegida
+  estatus: "",         // estatus de asistencia elegido
 };
 
 const RATING_ICONS = {
@@ -18,6 +19,7 @@ const RATING_ICONS = {
 
 const QUEUE_KEY  = "kln_cola_envios";   // envíos pendientes (offline)
 const TODAY_KEY  = "kln_recorrido_dia"; // inspecciones guardadas hoy
+const ATEND_KEY  = "kln_asistencia_dia"; // asistencias registradas hoy
 
 /* ---------- Atajos DOM ---------- */
 const $ = (id) => document.getElementById(id);
@@ -35,7 +37,10 @@ document.addEventListener("DOMContentLoaded", () => {
   initSubareaCombo();
   initPhotos();
   initForm();
+  initTabs();
+  initAsistencia();
   renderSummary();
+  renderAsistResumen();
   flushQueue();          // intenta reenviar lo que quedó pendiente
   registerServiceWorker();
   window.addEventListener("online", flushQueue);
@@ -383,6 +388,164 @@ function resetAreaForm() {
   });
   renderPhotos();
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =====================================================================
+   PESTAÑAS (Inspección | Asistencia)
+   ===================================================================== */
+function initTabs() {
+  $("tabInspeccion").addEventListener("click", () => switchTab("inspeccion"));
+  $("tabAsistencia").addEventListener("click", () => switchTab("asistencia"));
+}
+
+function switchTab(which) {
+  const insp = which === "inspeccion";
+  $("tabInspeccion").classList.toggle("active", insp);
+  $("tabAsistencia").classList.toggle("active", !insp);
+  $("tabInspeccion").setAttribute("aria-selected", insp ? "true" : "false");
+  $("tabAsistencia").setAttribute("aria-selected", insp ? "false" : "true");
+  $("viewInspeccion").hidden = !insp;
+  $("viewAsistencia").hidden = insp;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* =====================================================================
+   ASISTENCIA (el supervisor registra al personal — directo a Sheets)
+   ===================================================================== */
+const ESTATUS_ICONS = { "Presente": "🟢", "Retardo": "🟡", "Falta": "🔴" };
+
+function initAsistencia() {
+  initTurno();
+  initEstatus();
+  $("formAsistencia").addEventListener("submit", onSaveAsistencia);
+}
+
+function initTurno() {
+  const sel = $("turno");
+  (CONFIG.TURNOS || []).forEach((t) => {
+    const opt = document.createElement("option");
+    opt.value = t;
+    opt.textContent = t;
+    sel.appendChild(opt);
+  });
+}
+
+function initEstatus() {
+  const box = $("estatus");
+  (CONFIG.ASISTENCIA_ESTATUS || []).forEach((est) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "est-btn sel-" + est.toLowerCase();
+    btn.dataset.value = est;
+    btn.setAttribute("role", "radio");
+    btn.setAttribute("aria-checked", "false");
+    btn.innerHTML = `<span class="ico">${ESTATUS_ICONS[est] || ""}</span> ${est}`;
+    btn.addEventListener("click", () => selectEstatus(est));
+    box.appendChild(btn);
+  });
+}
+
+function selectEstatus(est) {
+  state.estatus = est;
+  document.querySelectorAll(".est-btn").forEach((b) => {
+    const on = b.dataset.value === est;
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-checked", on ? "true" : "false");
+  });
+}
+
+function validateAsistencia() {
+  if (!$("supervisor").value.trim()) return "Escribe el nombre del supervisor.";
+  if (!$("turno").value)             return "Elige el turno.";
+  if (!$("empleado").value.trim())   return "Escribe el nombre del empleado.";
+  if (!state.estatus)                return "Elige el estatus.";
+  return null;
+}
+
+function onSaveAsistencia(e) {
+  e.preventDefault();
+  const err = validateAsistencia();
+  if (err) { toast(err, "error"); return; }
+
+  const now = new Date();
+  const payload = {
+    action:      "asistencia",
+    token:       CONFIG.APP_TOKEN || "",
+    fecha:       fmtDate(now),
+    hora:        fmtTime(now),
+    contrato:    CONFIG.CONTRATO,
+    turno:       $("turno").value,
+    nombre:      $("empleado").value.trim(),
+    estatus:     state.estatus,
+    supervisor:  $("supervisor").value.trim(),
+    observacion: $("asistObs").value.trim(),
+  };
+
+  // Mismo modelo que inspección: se encola (no se pierde) y la app avanza.
+  enqueue(payload);
+  saveAsistToday({
+    fecha: payload.fecha, hora: payload.hora, turno: payload.turno,
+    nombre: payload.nombre, estatus: payload.estatus,
+  });
+
+  toast("Asistencia guardada ✓", "ok");
+  resetAsistForm();
+  renderAsistResumen();
+  flushQueue(); // envía en segundo plano, sin bloquear la pantalla
+}
+
+function resetAsistForm() {
+  // Conserva supervisor y turno (se marca a varios del mismo turno seguido).
+  $("empleado").value = "";
+  $("asistObs").value = "";
+  state.estatus = "";
+  document.querySelectorAll(".est-btn").forEach((b) => {
+    b.classList.remove("active");
+    b.setAttribute("aria-checked", "false");
+  });
+  $("empleado").focus();
+}
+
+function saveAsistToday(rec) {
+  const dia = loadAsistToday();
+  dia.push(rec);
+  localStorage.setItem(ATEND_KEY, JSON.stringify(dia));
+}
+
+function loadAsistToday() {
+  const dia = loadJSON(ATEND_KEY, []);
+  const hoy = fmtDate(new Date());
+  return dia.filter((r) => r.fecha === hoy); // descarta días anteriores
+}
+
+function renderAsistResumen() {
+  const dia = loadAsistToday();
+  const box = $("asistResumen");
+  if (dia.length === 0) { box.hidden = true; return; }
+  box.hidden = false;
+
+  const pres = dia.filter((r) => r.estatus === "Presente").length;
+  const ret  = dia.filter((r) => r.estatus === "Retardo").length;
+  const fal  = dia.filter((r) => r.estatus === "Falta").length;
+
+  $("asistStats").innerHTML = `
+    <div class="stat"><div class="stat-num">${dia.length}</div><div class="stat-lbl">Registrados</div></div>
+    <div class="stat"><div class="stat-num">${pres}</div><div class="stat-lbl">Presentes</div></div>
+    <div class="stat"><div class="stat-num">${ret}</div><div class="stat-lbl">Retardos</div></div>
+    <div class="stat"><div class="stat-num">${fal}</div><div class="stat-lbl">Faltas</div></div>`;
+
+  $("asistList").innerHTML = dia.slice().reverse().map((r) => `
+    <li>
+      <span>${escapeHtml(r.nombre)}
+        <span class="muted">· ${escapeHtml(r.turno)} · ${escapeHtml(r.hora)}</span></span>
+      <span class="tag ${asistTagClass(r.estatus)}">${escapeHtml(r.estatus)}</span>
+    </li>`).join("");
+}
+
+function asistTagClass(est) {
+  if (est === "Presente") return "ok";
+  if (est === "Falta")    return "obs";
+  return "warn"; // Retardo
 }
 
 /* =====================================================================

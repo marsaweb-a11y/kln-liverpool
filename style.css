@@ -207,6 +207,63 @@ html, body {
 .rate-btn.sel-regular.active   { background: var(--amber);  border-color: var(--amber);  color: #fff; }
 .rate-btn.sel-mala.active      { background: var(--red);    border-color: var(--red);    color: #fff; }
 
+/* ============ PESTAÑAS (Inspección | Asistencia) ============ */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding: 6px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+.tab {
+  min-height: 46px;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 800;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tab:active { transform: scale(.98); }
+.tab.active { background: var(--teal-700); color: #fff; }
+
+/* Defensa anti-caché: [hidden] debe ganar siempre (igual que el overlay). */
+.view[hidden] { display: none; }
+
+/* ============ ESTATUS (Presente | Retardo | Falta) ============ */
+.estatus {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.est-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 56px;
+  padding: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform .08s, border-color .15s, background .15s, color .15s;
+}
+.est-btn:active { transform: scale(.97); }
+.est-btn.sel-presente.active { background: var(--green); border-color: var(--green); color: #fff; }
+.est-btn.sel-retardo.active  { background: var(--amber); border-color: var(--amber); color: #fff; }
+.est-btn.sel-falta.active    { background: var(--red);   border-color: var(--red);   color: #fff; }
+
 /* ============ FOTOS ============ */
 .photos {
   display: grid;
@@ -313,8 +370,9 @@ html, body {
   border-radius: 999px;
   white-space: nowrap;
 }
-.tag.ok  { background: #dcfce7; color: #166534; }
-.tag.obs { background: #fee2e2; color: #991b1b; }
+.tag.ok   { background: #dcfce7; color: #166534; }
+.tag.obs  { background: #fee2e2; color: #991b1b; }
+.tag.warn { background: #fef3c7; color: #92400e; }
 
 /* ============ TOAST ============ */
 .toast {

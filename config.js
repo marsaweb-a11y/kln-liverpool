@@ -25,6 +25,13 @@ const CONFIG = {
         el reporte los convierte a números 4..1). */
   CALIFICACIONES: ["Excelente", "Buena", "Regular", "Mala"],
 
+  /* 4b) ASISTENCIA — el supervisor registra quién asistió en su recorrido.
+         TURNOS: turnos de Liverpool (edita libremente).
+         ASISTENCIA_ESTATUS: estatus posibles (no cambies los nombres sin
+         actualizar también ESTATUS_ASISTENCIA en Code.gs). */
+  TURNOS: ["Mañana", "Tarde"],
+  ASISTENCIA_ESTATUS: ["Presente", "Retardo", "Falta"],
+
   /* 5) Compresión de fotos antes de enviar (0.3 ligera … 0.9 buena).
         Más ligero = sube más rápido. 0.6 / 1024 px se ve bien y pesa poco. */
   FOTO_CALIDAD: 0.6,
